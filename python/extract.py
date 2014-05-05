@@ -12,25 +12,33 @@ from constants.extensions import CSV
 
 import sys
 import parser
+import argparse
 from lambert import Belgium1972LambertProjection
 
-straatnm_dbf = sys.argv[1] + 'straatnm.dbf'
-huisnr_dbf = sys.argv[1] + 'huisnr.dbf'
-pkancode_dbf = sys.argv[1] + 'pkancode.dbf'
-gemnm_dbf = sys.argv[1] + 'gemnm.dbf'
-gem_dbf = sys.argv[1] + 'gem.dbf'
-tobjhnr_dbf = sys.argv[1] + 'tobjhnr.dbf'
-terrobj_dbf = sys.argv[1] + 'terrobj.dbf'
+parser = argparse.ArgumentParser(description='Reads the AGIV CRAB database in DBF and converts this to .csv/.osm format.')
+parser.add_argument('path', help='The path to the CRAB DBF files.')
+parser.add_argument('--output-csv', type=argparse.FileType('w'), default='crab.csv', help='The path to the output csv file.')
+parser.add_argument('--filter-postcode', help='The postocde to filter on, will restrict data to this postcode only.', default='')
+parser.add_argument('--write-postcodes', action='store_true', default=False)
+parser.add_argument('--output-osm', type=argparse.FileType('w'), default='crab.osm', help='The path to the output OSM XML file.')
+args = parser.parse_args()
+
+straatnm_dbf = args.path + 'straatnm.dbf'
+huisnr_dbf = args.path + 'huisnr.dbf'
+pkancode_dbf = args.path + 'pkancode.dbf'
+gemnm_dbf = args.path + 'gemnm.dbf'
+gem_dbf = args.path + 'gem.dbf'
+tobjhnr_dbf = args.path + 'tobjhnr.dbf'
+terrobj_dbf = args.path + 'terrobj.dbf'
 
 do_terrobj = 1
 do_tobjhnr = 1
 do_huisnr = 1
 
 postal_code = 0
-if(len(sys.argv) > 2):
-    postal_code = int(sys.argv[2])
-
-print 'Filtering on postalcode: ' + str(postal_code)
+if(len(args.filter-postcode) > 0):
+    postal_code = int(args.filter-postcode)
+    print 'Filtering on postalcode: ' + str(postal_code)
 
 # parse & index pkancode
 huisnr_dic = dict()
@@ -222,7 +230,7 @@ for (huisnr_id, huisnr_fields) in huisnr_dic.items():
 
 fields = [ 'COMMUNE_NL', 'COMMUNE_FR', 'COMMUNE_DE', 'PKANCODE', 'STREET_NL', 'STREET_FR', 'STREET_DE', 'HUISNR', 'LAT', 'LON']
 
-output = open('crab.csv', 'w')
+output = open(args.output_csv, 'w')
 rec_str = ''
 for field in fields:
     rec_str += field + ','
@@ -239,26 +247,22 @@ for (huisnr_id, huisnr_fields) in huisnr_dic.items():
     output.write(rec_str[:-1] + "\n")
 output.close()
 
-for postalcode in pkancode_set:
-    output = open(str(postalcode) + '.csv', 'w')
-    rec_str = ''
-    for field in fields:
-        rec_str += field + ','
-    output.write(rec_str[:-1] + "\n")
-
-    for (huisnr_id, huisnr_fields) in huisnr_dic.items():
+if (args.write_postcodes):
+    for postalcode in pkancode_set:
+        output = open(str(postalcode) + '.csv', 'w')
         rec_str = ''
-        if(huisnr_fields['PKANCODE'] == postalcode):
-            for field in fields:
-                value = ''
-                if(field in huisnr_fields):
-                    rec_str += str(huisnr_fields[field]) + ','
-                else:
-                    rec_str += ','
-            output.write(rec_str[:-1] + "\n")
-    output.close()
+        for field in fields:
+            rec_str += field + ','
+        output.write(rec_str[:-1] + "\n")
 
-
-
-
-
+        for (huisnr_id, huisnr_fields) in huisnr_dic.items():
+            rec_str = ''
+            if(huisnr_fields['PKANCODE'] == postalcode):
+                for field in fields:
+                    value = ''
+                    if(field in huisnr_fields):
+                        rec_str += str(huisnr_fields[field]) + ','
+                    else:
+                        rec_str += ','
+                output.write(rec_str[:-1] + "\n")
+        output.close()
