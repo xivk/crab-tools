@@ -13,14 +13,15 @@ from constants.extensions import CSV
 import sys
 import parser
 import argparse
+from elementtree.SimpleXMLWriter import XMLWriter
 from lambert import Belgium1972LambertProjection
 
 parser = argparse.ArgumentParser(description='Reads the AGIV CRAB database in DBF and converts this to .csv/.osm format.')
 parser.add_argument('path', help='The path to the CRAB DBF files.')
-parser.add_argument('--output-csv', type=argparse.FileType('w'), default='crab.csv', help='The path to the output csv file.')
+parser.add_argument('--output-csv', default='crab.csv', help='The path to the output csv file.')
 parser.add_argument('--filter-postcode', help='The postocde to filter on, will restrict data to this postcode only.', default='')
 parser.add_argument('--write-postcodes', action='store_true', default=False)
-parser.add_argument('--output-osm', type=argparse.FileType('w'), default='crab.osm', help='The path to the output OSM XML file.')
+parser.add_argument('--output-osm', default='crab.osm', help='The path to the output OSM XML file.')
 args = parser.parse_args()
 
 straatnm_dbf = args.path + 'straatnm.dbf'
@@ -231,6 +232,9 @@ for (huisnr_id, huisnr_fields) in huisnr_dic.items():
 fields = [ 'COMMUNE_NL', 'COMMUNE_FR', 'COMMUNE_DE', 'PKANCODE', 'STREET_NL', 'STREET_FR', 'STREET_DE', 'HUISNR', 'LAT', 'LON']
 
 output = open(args.output_csv, 'w')
+if(len(args.output_osm) > 0):
+    w = XMLWriter(args.OUTFILE)
+    w.start("osm", {"generator": "crab-tools" + str(__version__), "version": API_VERSION, "upload": "false"})
 rec_str = ''
 for field in fields:
     rec_str += field + ','
@@ -245,6 +249,20 @@ for (huisnr_id, huisnr_fields) in huisnr_dic.items():
         else:
             rec_str += ','
     output.write(rec_str[:-1] + "\n")
+
+    if(len(args.output_osm) > 0):
+        lat = str(huisnr_fields['LAT'])
+        lon = str(huisnr_fields['LON'])
+        if(len(lat) > 0 and len(lon) > 0):
+            osm_id -= 1
+            w.start("node", {"id": str(osm_id), "timestamp": dt.isoformat(), "version": "1", "visible": "true", "lon": lon, "lat": lat})
+            w.element("tag", "", {"k": "addr:postal_code", "v": huisnr_fields['PKANCODE'})
+            w.element("tag", "", {"k": "addr:street", "v": huisnr_fields['STREET_NL'})
+            w.element("tag", "", {"k": "addr:house_number", "v": huisnr_fields['HUISNR'})
+            w.element("tag", "", {"k": "addr:city", "v": huisnr_fields['COMMUNE_NL'})
+            w.end()
+if(len(args.output_osm) > 0):
+    w.end()
 output.close()
 
 if (args.write_postcodes):
