@@ -1,6 +1,9 @@
-Usage: python extract.py {path_to_dbf_files} {optional: postalcode to filter on)
+usage: extract.py [-h] [--output-csv OUTPUTCSV]
+                  [--filter-postcode FILTERPOSTCODE] [--write-postcodes]
+                  [--output-osm OUTPUTOSM]
+                  path
 
-ex: python extract.py /Users/xivk/dev/git/crab-tools/CRAB_adresposities/dBASE/ 2275
+ex: python extract.py --output-csv somefile.csv --filter-postcodes 2275 /Users/xivk/dev/git/crab-tools/CRAB_adresposities/dBASE/
 
 This will create one (huge) csv file in your current folder {crab.csv} containing only the addressing information and their corresponding locations (lat/lon) already transformed from the lambert82 projection from AGIV.
 
